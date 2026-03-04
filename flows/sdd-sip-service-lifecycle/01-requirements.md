@@ -1,0 +1,174 @@
+# SIP Service Lifecycle - Requirements
+
+> Spec-Driven Development document for SIP service initialization and lifecycle management.
+
+**Status:** DRAFT  
+**Type:** SDD (Internal Service Logic)  
+**Module:** org.telon.sip2.PjSipService
+
+---
+
+## Overview
+
+The SIP Service is the core Android Service that manages the PJSIP library lifecycle, providing SIP functionality for React Native, Flutter, and native Android applications.
+
+## Functional Requirements
+
+### FR-1: Service Initialization
+
+The service MUST:
+- Extend Android `Service` class
+- Initialize on `onStartCommand()` with configuration from Intent extras
+- Create a dedicated `HandlerThread` with foreground priority for SIP operations
+- Return `START_NOT_STICKY` to avoid restart if killed by system
+
+### FR-2: PJSIP Library Loading
+
+The service MUST:
+- Load `libopenh264.so` (H.264 video codec) first
+- Load `libpjsua2.so` (PJSIP core library) second
+- Wrap native library loading errors in RuntimeException
+- Prevent duplicate loading (idempotent initialization)
+
+### FR-3: Endpoint Creation
+
+The service MUST:
+- Create a PJSIP `Endpoint` instance
+- Call `libCreate()` to initialize PJSIP internals
+- Register the worker thread via `libRegisterThread()`
+- Register the main UI thread via Handler post
+
+### FR-4: Endpoint Configuration
+
+The service MUST configure:
+
+**Logging:**
+- Log level: 10 (maximum verbosity)
+- Console level: 10
+- Custom log writer for Android Log integration
+
+**User Agent:**
+- Default: "React Native Sip2 (PJSIP version)"
+- Configurable via ServiceConfigurationDTO
+
+**STUN:**
+- Configurable STUN servers for NAT traversal
+- From ServiceConfigurationDTO
+
+**Media:**
+- Clock rate: 8000 Hz (narrowband voice)
+- Quality: 4 (medium-high, small filter resampling)
+- Echo cancellation: SPEEX (ecOptions=1)
+- Echo tail length: 0 (disabled)
+- Thread count: 2 (media processing)
+- Channel count: 1 (mono)
+- No VAD: true (always transmit audio)
+
+### FR-5: Transport Creation
+
+The service MUST create:
+- UDP transport with QoS type `PJ_QOS_TYPE_VOICE`
+- TCP transport with QoS type `PJ_QOS_TYPE_VOICE`
+- Store transport IDs for account assignment
+- TLS transport: commented out (not created)
+
+### FR-6: Library Start
+
+The service MUST:
+- Call `libStart()` after configuration complete
+- Ensure library is ready for SIP operations
+
+### FR-7: Service Destruction
+
+The service MUST:
+- Quit worker thread safely (quitSafely on API 18+)
+- Destroy PJSIP endpoint
+- Unregister broadcast receivers
+- Release wake locks and WiFi locks
+
+### FR-8: Thread Safety
+
+The service MUST:
+- Post all SIP operations to HandlerThread via `job()` method
+- Ensure thread-safe access to PJSIP library
+- Prevent concurrent modifications to account/call collections
+
+### FR-9: Configuration Management
+
+The service MUST:
+- Accept `ServiceConfigurationDTO` via Intent extras
+- Accept `AccountConfigurationDTO` for account creation
+- Support configuration updates during service lifetime
+- Serialize configuration to JSON for broadcast events
+
+### FR-10: Object Lifecycle Management
+
+The service MUST:
+- Maintain `mTrash` list for JNI objects
+- Prevent garbage collection of active JNI objects
+- Clean up objects on service destruction
+
+## Non-Functional Requirements
+
+### NFR-1: Performance
+
+- HandlerThread priority: `PROCESS.THREAD_PRIORITY_FOREGROUND`
+- Prevent ANR by offloading SIP work from main thread
+- Media thread count: 2 for parallel processing
+
+### NFR-2: Compatibility
+
+- Minimum SDK: 21 (Android 5.0)
+- Target SDK: 34 (Android 14)
+- Java version: 17+
+
+### NFR-3: Reliability
+
+- Idempotent initialization (safe to call multiple times)
+- Graceful error handling for native library loading
+- Thread-safe collection access (ArrayList with synchronization)
+
+### NFR-4: Audio Quality
+
+- 8kHz sample rate for narrowband compatibility
+- SPEEX echo cancellation for acoustic echo suppression
+- No VAD to prevent audio clipping during silence
+
+## Dependencies
+
+### External Dependencies
+
+- PJSIP library (via JNI)
+- OpenH264 codec (via JNI)
+- Android AudioManager
+- Android PowerManager (wake locks)
+- Android WifiManager (WiFi locks)
+
+### Internal Dependencies
+
+- `PjSipBroadcastEmiter`: Event emission
+- `PjSipLogWriter`: Custom log writer
+- `ServiceConfigurationDTO`: Configuration object
+- `AccountConfigurationDTO`: Account configuration
+
+## Constraints
+
+- Single service instance per application
+- Single HandlerThread for all SIP operations
+- UDP and TCP transports only (TLS disabled)
+- Mono audio only (channel count = 1)
+
+## Acceptance Criteria
+
+1. Service starts successfully with default configuration
+2. Native libraries load without errors
+3. PJSIP endpoint initializes and starts
+4. UDP and TCP transports created successfully
+5. Service handles multiple start commands gracefully
+6. Service destruction cleans up all resources
+7. All SIP operations execute on worker thread
+8. Configuration updates apply without restart
+
+---
+
+*Generated by /legacy analysis*
