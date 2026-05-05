@@ -1,4 +1,4 @@
-package one.telefon.sip2;
+package org.telon.sip2;
 
 import android.util.Log;
 import org.pjsip.pjsua2.LogEntry;

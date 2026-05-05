@@ -1,4 +1,4 @@
-package one.telefon.sip2;
+package org.telon.sip2;
 
 import android.content.Context;
 import android.os.Handler;

@@ -1,4 +1,4 @@
-package one.telefon.sip2.dto;
+package org.telon.sip2.dto;
 
 import android.content.Intent;
 //import androidx.annotation.Nullable;

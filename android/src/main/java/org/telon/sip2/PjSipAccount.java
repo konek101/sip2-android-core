@@ -1,6 +1,6 @@
-package one.telefon.sip2;
+package org.telon.sip2;
 
-import one.telefon.sip2.dto.AccountConfigurationDTO;
+import org.telon.sip2.dto.AccountConfigurationDTO;
 import org.json.JSONObject;
 import org.pjsip.pjsua2.Account;
 import org.pjsip.pjsua2.OnIncomingCallParam;

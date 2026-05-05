@@ -1,4 +1,4 @@
-package one.telefon.sip2;
+package org.telon.sip2;
 
 import org.pjsip.pjsua2.SipHeader;
 import org.pjsip.pjsua2.SipHeaderVector;
